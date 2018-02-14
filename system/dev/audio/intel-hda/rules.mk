@@ -8,6 +8,7 @@ MODULES += \
     $(LOCAL_DIR)/controller \
     $(LOCAL_DIR)/codecs/qemu \
     $(LOCAL_DIR)/codecs/realtek \
+    $(LOCAL_DIR)/dsp \
 
 ADSP_FIRMWARE_NAME := dsp_fw_kbl_v3266.bin
 ADSP_FIRMWARE_BIN := $(LOCAL_DIR)/firmware/$(ADSP_FIRMWARE_NAME)
