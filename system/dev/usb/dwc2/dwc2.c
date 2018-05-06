@@ -26,17 +26,14 @@ static zx_status_t wait_bits(volatile uint32_t* ptr, uint32_t bits, uint32_t exp
 }
 
 static zx_status_t usb_dwc_softreset_core(void) {
-static_assert((uint8_t*)&regs->core_reset - (uint8_t*)regs == 0x10, "");
-
-
-    zx_status_t status = wait_bits(&regs->core_reset, DWC_AHB_MASTER_IDLE, DWC_AHB_MASTER_IDLE);
+    zx_status_t status = wait_bits(&regs->core_reset.val, DWC_AHB_MASTER_IDLE, DWC_AHB_MASTER_IDLE);
     if (status != ZX_OK) {
         return status;
     }
 
-    regs->core_reset = DWC_SOFT_RESET;
+    regs->core_reset.val = DWC_SOFT_RESET;
 
-    return wait_bits(&regs->core_reset, DWC_SOFT_RESET, 0);
+    return wait_bits(&regs->core_reset.val, DWC_SOFT_RESET, 0);
 }
 
 static zx_status_t usb_dwc_setupcontroller(void) {
@@ -92,6 +89,7 @@ core_interrupt_mask.val = 0xffffffff;
 core_interrupt_mask.nptxfempty = 0;
 core_interrupt_mask.ptxfempty = 0;
 core_interrupt_mask.eopframe = 0;
+core_interrupt_mask.resetdet = 0;
 
     regs->core_interrupt_mask = core_interrupt_mask;
 
@@ -178,11 +176,9 @@ uint32_t wkupintr          :1;
     if (interrupts.host_channel_intr) {
         dwc_handle_channel_irq(dwc);
     }
-    if (interrupts.resetdet) {
-        printf("resetdet\n");
-    }
     if (interrupts.usbreset) {
         printf("usbreset\n");
+        dwc_handle_reset_irq(dwc);
     }
     if (interrupts.enumdone) {
         printf("enumdone\n");

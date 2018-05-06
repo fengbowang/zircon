@@ -171,6 +171,9 @@ typedef struct dwc_usb_scheduler_thread_ctx {
     dwc_usb_t* dwc;
 } dwc_usb_scheduler_thread_ctx_t;
 
+// dwc2-device.c
+void dwc_handle_reset_irq(dwc_usb_t* dwc);
+
 // dwc2-host.c
 extern usb_hci_protocol_ops_t dwc_hci_protocol;
 

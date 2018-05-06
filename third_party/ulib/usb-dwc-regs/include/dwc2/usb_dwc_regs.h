@@ -112,18 +112,32 @@ struct dwc_regs {
      *
      * Software can use this register to cause the DWC to reset itself.
      */
-    uint32_t core_reset;
+    union dwc_core_reset {
+        uint32_t val;
+        struct {
+		    /* Core Soft Reset */
+    		uint32_t csftrst    : 1;
+    		/* Hclk Soft Reset */
+    		unsigned hsftrst    : 1;
+    		/* Host Frame Counter Reset */
+    		unsigned hstfrm     : 1;
+    		/* In Token Sequence Learning Queue Flush */
+    		unsigned intknqflsh : 1;
+    		/* RxFIFO Flush */
+    		unsigned rxfflsh    : 1;
+    		/* TxFIFO Flush */
+    		unsigned txfflsh    : 1;
+    		/* TxFIFO Number */
+    		unsigned txfnum     : 5;
+    		unsigned reserved   : 19;
+    		/* DMA Request Signal */
+    		unsigned dmareq     : 1;
+    		/* AHB Master Idle */
+    		unsigned ahbidle    : 1;
+        };
+    } core_reset;
 
-    /**
-     * TODO
-     */
 #define DWC_AHB_MASTER_IDLE (1 << 31)
-
-    /**
-     * Write 1 to this location in the Core Reset Register to start a soft
-     * reset.  This bit will then be cleared by the hardware when the reset is
-     * complete.
-     */
 #define DWC_SOFT_RESET      (1 << 0)
 
     /**
@@ -990,20 +1004,33 @@ struct dwc_regs {
     } dsts;
 
     uint32_t unused;
+
     /* 0x810 : Device IN Endpoint Common Interrupt Mask Register */
     union dwc_diepmsk {
         uint32_t val;
         struct {
-            /* Suspend Status */
-            uint32_t suspsts    : 1;
-            /* Enumerated Speed */
-            uint32_t enumspd    : 2;
-            /* Erratic Error */
-            uint32_t errticerr  : 1;
-            uint32_t reserved   : 4;
-            /* Frame or Microframe Number of the received SOF */
-            uint32_t soffn      : 14;
-            uint32_t reserved2  : 10;
+    		/* Transfer complete mask */
+    		uint32_t xfercompl      : 1;
+    		/* Endpoint disable mask */
+    		uint32_t epdisabled     : 1;
+    		/* AHB Error mask */
+    		uint32_t ahberr         : 1;
+    		/* TimeOUT Handshake mask (non-ISOC EPs) */
+    		uint32_t timeout        : 1;
+    		/* IN Token received with TxF Empty mask */
+    		uint32_t intktxfemp     : 1;
+    		/* IN Token Received with EP mismatch mask */
+    		uint32_t intknepmis     : 1;
+    		/* IN Endpoint NAK Effective mask */
+    		uint32_t inepnakeff     : 1;
+    		uint32_t emptyintr      : 1;
+    		uint32_t txfifoundrn    : 1;
+    		/* BNA Interrupt mask */
+    		uint32_t bna            : 1;
+    		uint32_t reserved       : 3;
+    		/* BNA Interrupt mask */
+    		uint32_t nak            : 1;
+    		uint32_t reserved2      : 18;
         };
     } diepmsk;
     
@@ -1048,6 +1075,9 @@ struct dwc_regs {
     uint32_t daint;
     /* 0x81C : Device All Endpoints Interrupt Mask Register */
     uint32_t daintmsk;
+#define DWC_EP_IN_SHIFT  0
+#define DWC_EP_OUT_SHIFT 16
+
     /* 0x820 : Device IN Token Queue Read Register-1  */
     uint32_t dtknqr1;
     /* 0x824 : Device IN Token Queue Read Register-2  */
@@ -1075,6 +1105,10 @@ struct dwc_regs {
     struct {
     	/* Device IN Endpoint Control Register */
     	uint32_t diepctl;
+#define DWC_DIEPCTL_SNAK  (1 << 27)
+#define DWC_DIEPCTL_EPDIS (1 << 30)
+#define DWC_DIEPCTL_EPENA (1 << 31)
+
     	uint32_t reserved;
     	/* Device IN Endpoint Interrupt Register */
     	uint32_t diepint;
@@ -1093,6 +1127,8 @@ struct dwc_regs {
     struct {
     	/* Device OUT Endpoint Control Register */
     	uint32_t doepctl;
+#define DWC_DOEPCTL_SNAK  (1 << 27)
+
     	uint32_t reserved;
     	/* Device OUT Endpoint Interrupt Register */
     	uint32_t doepint;
