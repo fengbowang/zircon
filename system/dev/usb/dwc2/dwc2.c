@@ -56,8 +56,8 @@ static zx_status_t usb_dwc_setupcontroller(void) {
     regs->daint = 0xFFFFFFFF;
     regs->daintmsk = 0;
     for (int i = 0; i < MAX_EPS_CHANNELS; i++) {
-        regs->depin[i].diepctl = 0;
-        regs->depout[i].doepctl = 0;
+        regs->depin[i].diepctl.val = 0;
+        regs->depout[i].doepctl.val = 0;
         regs->depin[i].dieptsiz = 0;
         regs->depout[i].doeptsiz = 0;
     }
@@ -66,30 +66,17 @@ static zx_status_t usb_dwc_setupcontroller(void) {
     regs->power = 0;
 
 
-    union dwc_core_interrupts core_interrupt_mask;
+    union dwc_core_interrupts core_interrupt_mask = {0};
 
-    regs->core_interrupt_mask.val = 0;
-    regs->core_interrupts.val = 0xffffffff;
-
-    core_interrupt_mask.val = 0;
-
-#if HOST_HOST
-    core_interrupt_mask.host_channel_intr = 1;
-    core_interrupt_mask.port_intr = 1;
-#else
+//    core_interrupt_mask.host_channel_intr = 1;
+//    core_interrupt_mask.port_intr = 1;
     core_interrupt_mask.rxstsqlvl = 1;
     core_interrupt_mask.usbreset = 1;
     core_interrupt_mask.enumdone = 1;
     core_interrupt_mask.inepintr = 1;
     core_interrupt_mask.outepintr = 1;
-    core_interrupt_mask.sof_intr = 1;
+//    core_interrupt_mask.sof_intr = 1;
     core_interrupt_mask.usbsuspend = 1;
-#endif
-core_interrupt_mask.val = 0xffffffff;
-core_interrupt_mask.nptxfempty = 0;
-core_interrupt_mask.ptxfempty = 0;
-core_interrupt_mask.eopframe = 0;
-core_interrupt_mask.resetdet = 0;
 
     regs->core_interrupt_mask = core_interrupt_mask;
 
@@ -167,6 +154,10 @@ uint32_t sessreqintr       :1;
 uint32_t wkupintr          :1;
 */
 
+//04008028  sof_intr nptxfempty outepintr ptxfempty
+//  04088028 sof_intr nptxfempty eopframe resetdet ptxfempty
+
+
     if (interrupts.port_intr) {
         dwc_handle_port_irq(dwc);
     }
@@ -177,17 +168,26 @@ uint32_t wkupintr          :1;
         dwc_handle_channel_irq(dwc);
     }
     if (interrupts.usbreset) {
-        printf("usbreset\n");
         dwc_handle_reset_irq(dwc);
     }
     if (interrupts.enumdone) {
-        printf("enumdone\n");
+        dwc_handle_enumdone_irq(dwc);
     }
-    if (interrupts.eopframe) {
-        printf("eopframe\n");
-    }
+//    if (interrupts.eopframe) {
+//        printf("eopframe\n");
+//    }
     if (interrupts.rxstsqlvl) {
         printf("rxstsqlvl\n");
+        dwc_handle_rxstsqlvl_irq(dwc);
+    }
+
+    if (interrupts.inepintr) {
+        printf("inepintr\n");
+        dwc_handle_inepintr_irq(dwc);
+    }
+    if (interrupts.outepintr) {
+        printf("outepintr\n");
+        dwc_handle_outepintr_irq(dwc);
     }
 
     regs->core_interrupts = interrupts;

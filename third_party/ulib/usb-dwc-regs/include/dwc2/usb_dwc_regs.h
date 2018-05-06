@@ -17,6 +17,124 @@
 
 #define MAX_EPS_CHANNELS 16
 
+
+typedef volatile union {
+	uint32_t val;
+	struct {
+		uint32_t mps        : 11;
+#define DWC_DEP0CTL_MPS_64	 0
+#define DWC_DEP0CTL_MPS_32	 1
+#define DWC_DEP0CTL_MPS_16	 2
+#define DWC_DEP0CTL_MPS_8	 3
+		uint32_t nextep     : 4;
+		uint32_t usbactep   : 1;
+		uint32_t dpid       : 1;
+		uint32_t naksts     : 1;
+		uint32_t eptype     : 2;
+		uint32_t snp        : 1;
+		uint32_t stall      : 1;
+		uint32_t txfnum     : 4;
+		uint32_t cnak       : 1;
+		uint32_t snak       : 1;
+		uint32_t setd0pid   : 1;
+		uint32_t setd1pid   : 1;
+		uint32_t epdis      : 1;
+		uint32_t epena      : 1;
+	};
+} depctl_t;
+
+typedef volatile union {
+	uint32_t val;
+	struct {
+		/* Transfer size */
+		uint32_t xfersize   : 19;
+		/* Packet Count */
+		uint32_t pktcnt     : 10;
+		/* Multi Count */
+		uint32_t mc         : 2;
+		uint32_t reserved   : 1;
+	};
+} deptsiz_t;
+
+typedef volatile union {
+	uint32_t val;
+	struct {
+		/* Transfer size */
+		uint32_t xfersize   : 7;
+		uint32_t reserved   : 12;
+		/* Packet Count */
+		uint32_t pktcnt     : 2;
+		uint32_t reserved2  : 8;
+		/* Setup Packet Count */
+		uint32_t supcnt     : 2;
+		uint32_t reserved3  : 1;
+	};
+} deptsiz0_t;
+
+typedef volatile union {
+	uint32_t val;
+	struct {
+		/* Transfer complete mask */
+		uint32_t xfercompl      : 1;
+		/* Endpoint disable mask */
+		uint32_t epdisabled     : 1;
+		/* AHB Error mask */
+		uint32_t ahberr         : 1;
+		/* TimeOUT Handshake mask (non-ISOC EPs) */
+		uint32_t timeout        : 1;
+		/* IN Token received with TxF Empty mask */
+		uint32_t intktxfemp     : 1;
+		/* IN Token Received with EP mismatch mask */
+		uint32_t intknepmis     : 1;
+		/* IN Endpoint NAK Effective mask */
+		uint32_t inepnakeff     : 1;
+		uint32_t reserved       : 1;
+		uint32_t txfifoundrn    : 1;
+		/* BNA Interrupt mask */
+		uint32_t bna            : 1;
+		uint32_t reserved2      : 3;
+		/* BNA Interrupt mask */
+		uint32_t nak:1;
+		uint32_t reserved3      : 18;
+	};
+} diepint_t;
+
+typedef volatile union {
+	uint32_t val;
+	struct {
+		/* Transfer complete */
+		uint32_t xfercompl      : 1;
+		/* Endpoint disable  */
+		uint32_t epdisabled     : 1;
+		/* AHB Error */
+		uint32_t ahberr         : 1;
+		/* Setup Phase Done (contorl EPs) */
+		uint32_t setup          : 1;
+		/* OUT Token Received when Endpoint Disabled */
+		uint32_t outtknepdis    : 1;
+		uint32_t stsphsercvd    : 1;
+		/* Back-to-Back SETUP Packets Received */
+		uint32_t back2backsetup : 1;
+		uint32_t reserved       : 1;
+		/* OUT packet Error */
+		uint32_t outpkterr      : 1;
+		/* BNA Interrupt */
+		uint32_t bna            : 1;
+
+		uint32_t reserved2      : 1;
+		/* Packet Drop Status */
+		uint32_t pktdrpsts      : 1;
+		/* Babble Interrupt */
+		uint32_t babble         : 1;
+		/* NAK Interrupt */
+		uint32_t nak            : 1;
+		/* NYET Interrupt */
+		uint32_t nyet           : 1;
+
+		uint32_t reserved3      : 17;
+	};
+} doepint_t;
+
 /**
  * Layout of the registers of the DesignWare Hi-Speed USB 2.0 On-The-Go
  * Controller.  There is no official documentation for these; however, the
@@ -118,22 +236,22 @@ struct dwc_regs {
 		    /* Core Soft Reset */
     		uint32_t csftrst    : 1;
     		/* Hclk Soft Reset */
-    		unsigned hsftrst    : 1;
+    		uint32_t hsftrst    : 1;
     		/* Host Frame Counter Reset */
-    		unsigned hstfrm     : 1;
+    		uint32_t hstfrm     : 1;
     		/* In Token Sequence Learning Queue Flush */
-    		unsigned intknqflsh : 1;
+    		uint32_t intknqflsh : 1;
     		/* RxFIFO Flush */
-    		unsigned rxfflsh    : 1;
+    		uint32_t rxfflsh    : 1;
     		/* TxFIFO Flush */
-    		unsigned txfflsh    : 1;
+    		uint32_t txfflsh    : 1;
     		/* TxFIFO Number */
-    		unsigned txfnum     : 5;
-    		unsigned reserved   : 19;
+    		uint32_t txfnum     : 5;
+    		uint32_t reserved   : 19;
     		/* DMA Request Signal */
-    		unsigned dmareq     : 1;
+    		uint32_t dmareq     : 1;
     		/* AHB Master Idle */
-    		unsigned ahbidle    : 1;
+    		uint32_t ahbidle    : 1;
         };
     } core_reset;
 
@@ -1104,14 +1222,11 @@ struct dwc_regs {
     /* 0x900 : Device EP IN Registers  */
     struct {
     	/* Device IN Endpoint Control Register */
-    	uint32_t diepctl;
-#define DWC_DIEPCTL_SNAK  (1 << 27)
-#define DWC_DIEPCTL_EPDIS (1 << 30)
-#define DWC_DIEPCTL_EPENA (1 << 31)
+    	depctl_t diepctl;
 
     	uint32_t reserved;
     	/* Device IN Endpoint Interrupt Register */
-    	uint32_t diepint;
+    	diepint_t diepint;
     	uint32_t reserved2;
     	/* Device IN Endpoint Transfer Size */
     	uint32_t dieptsiz;
@@ -1126,12 +1241,11 @@ struct dwc_regs {
     /* 0xB00 : Device EP OUT Registers  */
     struct {
     	/* Device OUT Endpoint Control Register */
-    	uint32_t doepctl;
-#define DWC_DOEPCTL_SNAK  (1 << 27)
+    	depctl_t doepctl;
 
     	uint32_t reserved;
     	/* Device OUT Endpoint Interrupt Register */
-    	uint32_t doepint;
+    	doepint_t doepint;
     	uint32_t reserved2;
     	/* Device OUT Endpoint Transfer Size Register */
     	uint32_t doeptsiz;

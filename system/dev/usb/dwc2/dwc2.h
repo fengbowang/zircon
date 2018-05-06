@@ -61,6 +61,15 @@ typedef enum dwc_ctrl_phase {
     CTRL_PHASE_STATUS = 3,
 } dwc_ctrl_phase_t;
 
+typedef enum dwc_ep0_state {
+    EP0_STATE_DISCONNECT,
+    EP0_STATE_IDLE,
+    EP0_STATE_DATA_OUT,
+    EP0_STATE_DATA_IN,
+    EP0_STATE_STATUS,
+    EP0_STATE_STALL,
+} dwc_ep0_state_t;
+
 typedef struct dwc_usb_transfer_request {
     list_node_t node;
 
@@ -148,6 +157,8 @@ typedef struct dwc_usb {
 
     // Pool of free requests to reuse.
     usb_request_pool_t free_usb_reqs;
+
+    dwc_ep0_state_t ep0_state;
 } dwc_usb_t;
 
 typedef struct dwc_usb_endpoint {
@@ -173,6 +184,10 @@ typedef struct dwc_usb_scheduler_thread_ctx {
 
 // dwc2-device.c
 void dwc_handle_reset_irq(dwc_usb_t* dwc);
+void dwc_handle_enumdone_irq(dwc_usb_t* dwc);
+void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc);
+void dwc_handle_inepintr_irq(dwc_usb_t* dwc);
+void dwc_handle_outepintr_irq(dwc_usb_t* dwc);
 
 // dwc2-host.c
 extern usb_hci_protocol_ops_t dwc_hci_protocol;
