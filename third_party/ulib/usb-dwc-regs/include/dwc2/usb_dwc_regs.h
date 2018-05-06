@@ -271,15 +271,10 @@ struct dwc_regs {
     union dwc_core_interrupts {
         uint32_t val;
         struct {
-            uint32_t reserved0         : 1;
+            uint32_t curmode           : 1;
             uint32_t modemismatch      : 1;
             uint32_t otgintr           : 1;
-
-            /**
-             * Start of Frame.  TODO
-             */
             uint32_t sof_intr          : 1;
-
             uint32_t rxstsqlvl         : 1;
             uint32_t nptxfempty        : 1;
             uint32_t ginnakeff         : 1;
@@ -339,8 +334,23 @@ struct dwc_regs {
     uint32_t receive_status;
 
     /* 0x020 : Receive Status Queue Read & Pop */
-    uint32_t receive_status_pop;
-
+    union receive_status_pop {
+        uint32_t val;
+        struct {
+		uint32_t epnum      : 4;
+		uint32_t bcnt       : 11;
+		uint32_t dpid       : 2;
+#define DWC_STS_DATA_UPDT		0x2	// OUT Data Packet
+#define DWC_STS_XFER_COMP		0x3	// OUT Data Transfer Complete
+#define DWC_DSTS_GOUT_NAK		0x1	// Global OUT NAK
+#define DWC_DSTS_SETUP_COMP		0x4	// Setup Phase Complete
+#define DWC_DSTS_SETUP_UPDT 0x6	// SETUP Packet
+		uint32_t pktsts     : 4;
+		uint32_t fn         : 4;
+		uint32_t reserved   : 7;
+        };
+    } receive_status_pop;
+  
     /**
      * 0x024 : Receive FIFO Size Register.
      *

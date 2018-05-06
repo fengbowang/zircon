@@ -158,7 +158,9 @@ typedef struct dwc_usb {
     // Pool of free requests to reuse.
     usb_request_pool_t free_usb_reqs;
 
+    // device stuff
     dwc_ep0_state_t ep0_state;
+    usb_setup_t cur_setup;
 } dwc_usb_t;
 
 typedef struct dwc_usb_endpoint {

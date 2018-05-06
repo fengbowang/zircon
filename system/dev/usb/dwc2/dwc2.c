@@ -65,7 +65,6 @@ static zx_status_t usb_dwc_setupcontroller(void) {
     // reset phy clock
     regs->power = 0;
 
-
     union dwc_core_interrupts core_interrupt_mask = {0};
 
 //    core_interrupt_mask.host_channel_intr = 1;
@@ -78,7 +77,10 @@ static zx_status_t usb_dwc_setupcontroller(void) {
 //    core_interrupt_mask.sof_intr = 1;
     core_interrupt_mask.usbsuspend = 1;
 
+printf("enabling interrupts %08x\n", core_interrupt_mask.val);
+
     regs->core_interrupt_mask = core_interrupt_mask;
+
 
 /*
     union dwc_core_configuration core_configuration;
@@ -156,8 +158,9 @@ uint32_t wkupintr          :1;
 
 //04008028  sof_intr nptxfempty outepintr ptxfempty
 //  04088028 sof_intr nptxfempty eopframe resetdet ptxfempty
+// 54008c20 nptxfempty erlysuspend usbsuspend eopframe ptxfempty conidstschng sessreqintr
 
-
+/* host
     if (interrupts.port_intr) {
         dwc_handle_port_irq(dwc);
     }
@@ -167,20 +170,23 @@ uint32_t wkupintr          :1;
     if (interrupts.host_channel_intr) {
         dwc_handle_channel_irq(dwc);
     }
-    if (interrupts.usbreset) {
-        dwc_handle_reset_irq(dwc);
-    }
-    if (interrupts.enumdone) {
-        dwc_handle_enumdone_irq(dwc);
-    }
-//    if (interrupts.eopframe) {
-//        printf("eopframe\n");
-//    }
+*/
     if (interrupts.rxstsqlvl) {
         printf("rxstsqlvl\n");
         dwc_handle_rxstsqlvl_irq(dwc);
     }
-
+    if (interrupts.nptxfempty) {
+        regs->core_interrupts.nptxfempty = 1;
+    }
+    if (interrupts.usbreset) {
+        dwc_handle_reset_irq(dwc);
+    }
+    if (interrupts.usbsuspend) {
+        regs->core_interrupts.usbsuspend = 1;
+    }
+    if (interrupts.enumdone) {
+        dwc_handle_enumdone_irq(dwc);
+    }
     if (interrupts.inepintr) {
         printf("inepintr\n");
         dwc_handle_inepintr_irq(dwc);
@@ -190,12 +196,14 @@ uint32_t wkupintr          :1;
         dwc_handle_outepintr_irq(dwc);
     }
 
-    regs->core_interrupts = interrupts;
+//    regs->core_interrupts = interrupts;
 }
 
 // Thread to handle interrupts.
 static int dwc_irq_thread(void* arg) {
     dwc_usb_t* dwc = (dwc_usb_t*)arg;
+
+//sleep(5);
 
     while (1) {
         zx_status_t wait_res;
@@ -266,13 +274,11 @@ static zx_status_t usb_dwc_bind(void* ctx, zx_device_t* dev) {
     list_initialize(&usb_dwc->free_reqs);
     mtx_unlock(&usb_dwc->free_req_mtx);
 
-printf("AAAAAAA call usb_dwc_softreset_core\n");
     if ((st = usb_dwc_softreset_core()) != ZX_OK) {
         zxlogf(ERROR, "usb_dwc: failed to reset core.\n");
         goto error_return;
     }
 
-printf("AAAAAAA call usb_dwc_setupcontroller\n");
     if ((st = usb_dwc_setupcontroller()) != ZX_OK) {
         zxlogf(ERROR, "usb_dwc: failed setup controller.\n");
         goto error_return;

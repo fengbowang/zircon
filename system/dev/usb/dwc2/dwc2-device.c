@@ -157,12 +157,6 @@ static void dwc_handle_ep0(dwc_usb_t* dwc) {
 printf("XXXX pcd_setup\n");
 //		req_flag->request_config = 0;
 //		pcd_setup(_pcd);
-{
-    volatile uint32_t* fifo = (uint32_t *)((uint8_t *)regs + 0x1000);
-    uint32_t x1 = *fifo;
-    uint32_t x2 = *fifo;
-    printf("%08x %08xx\n", x1, x2);
-}
 		break;
 
 	case EP0_STATE_DATA_IN:
@@ -329,8 +323,13 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
 
     dwc->ep0_state = EP0_STATE_IDLE;
 
-    regs->depin[0].diepctl.mps = DWC_DEP0CTL_MPS_64;
-    regs->depin[0].diepctl.epena = 1;
+    depctl_t diepctl = regs->depin[0].diepctl;
+    diepctl.mps = DWC_DEP0CTL_MPS_64;
+    regs->depin[0].diepctl = diepctl;
+
+    depctl_t doepctl = regs->depout[0].doepctl;
+    doepctl.epena = 1;
+    regs->depout[0].doepctl = doepctl;
 
     union dwc_dctl dctl = {0};
     dctl.cgnpinnak = 1;
@@ -347,53 +346,67 @@ void dwc_handle_enumdone_irq(dwc_usb_t* dwc) {
 
 void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc) {
 printf("dwc_handle_rxstsqlvl_irq\n");
-#if 0
+/*
 	gintmsk_data_t gintmask = {0};
 	gintsts_data_t gintsts = {0};
 	dwc_ep_t *ep;
 	pcd_struct_t *pcd = &gadget_wrapper.pcd;
 	struct usb_req_flag *req_flag = &gadget_wrapper.req_flag;
 	device_grxsts_data_t status;
+*/
 
 	/* Disable the Rx Status Queue Level interrupt */
-	gintmask.b.rxstsqlvl = 1;
-	dwc_modify_reg32(DWC_REG_GINTMSK, gintmask.d32, 0);
+    regs->core_interrupt_mask.rxstsqlvl = 0;
+//	gintmask.b.rxstsqlvl = 1;
+//	dwc_modify_reg32(DWC_REG_GINTMSK, gintmask.d32, 0);
 
 	/* Get the Status from the top of the FIFO */
-	status.d32 = dwc_read_reg32(DWC_REG_GRXSTSP);
-	if (status.b.epnum != 0)
-		status.b.epnum = 2;
+	 union receive_status_pop rsp = regs->receive_status_pop;
+	if (rsp.epnum != 0)
+		rsp.epnum = 2;
 	/* Get pointer to EP structure */
-	ep = &pcd->dwc_eps[status.b.epnum].dwc_ep;
+//	ep = &pcd->dwc_eps[status.b.epnum].dwc_ep;
 
-	switch (status.b.pktsts) {
+	switch (rsp.pktsts) {
 	case DWC_STS_DATA_UPDT:
+printf("DWC_STS_DATA_UPDT\n");
+/*
 		if (status.b.bcnt && ep->xfer_buff) {
-			/** @todo NGS Check for buffer overflow? */
 			dwc_otg_read_packet(ep->xfer_buff, status.b.bcnt);
 			ep->xfer_count += status.b.bcnt;
 			ep->xfer_buff += status.b.bcnt;
 		}
-
+*/
 		break;
 
 	case DWC_DSTS_SETUP_UPDT:
-		dwc_otg_read_setup_packet(gadget_wrapper.pcd.setup_pkt.d32);
-		req_flag->request_enable = 1;
-		ep->xfer_count += status.b.bcnt;
+printf("DWC_STS_DATA_UPDT\n");
+{
+    volatile uint32_t* fifo = (uint32_t *)((uint8_t *)regs + 0x1000);
+    uint32_t* dest = (uint32_t*)&dwc->cur_setup;
+    dest[0] = *fifo;
+    dest[1] = *fifo;
+printf("SETUP bmRequestType: 0x%02x bRequest: %u wValue: %u wIndex: %u wLength: %u\n",
+       dwc->cur_setup.bmRequestType, dwc->cur_setup.bRequest, dwc->cur_setup.wValue,
+       dwc->cur_setup.wIndex, dwc->cur_setup.wLength); 
+}
+
+//		dwc_otg_read_setup_packet(gadget_wrapper.pcd.setup_pkt.d32);
+//		req_flag->request_enable = 1;
+//		ep->xfer_count += status.b.bcnt;
 		break;
 
 	case DWC_DSTS_GOUT_NAK:
 	case DWC_STS_XFER_COMP:
 	case DWC_DSTS_SETUP_COMP:
 	default:
+printf("other\n");
 		break;
 	}
 
 
 	/* Enable the Rx Status Queue Level interrupt */
-	dwc_modify_reg32(DWC_REG_GINTMSK, 0, gintmask.d32);
-#endif
+    regs->core_interrupt_mask.rxstsqlvl = 1;
 
 	/* Clear interrupt */
 	union dwc_core_interrupts core_interrupts = {0};
@@ -402,6 +415,8 @@ printf("dwc_handle_rxstsqlvl_irq\n");
 }
 
 void dwc_handle_inepintr_irq(dwc_usb_t* dwc) {
+printf("dwc_handle_inepintr_irq\n");
+
 #if 0
 	diepint_data_t diepint = {0};
 	gintmsk_data_t intr_mask = {0};
