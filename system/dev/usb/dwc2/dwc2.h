@@ -16,10 +16,13 @@
 #include <ddk/binding.h>
 #include <ddk/debug.h>
 #include <ddk/device.h>
+#include <ddk/io-buffer.h>
 #include <ddk/protocol/platform-defs.h>
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/usb-bus.h>
+#include <ddk/protocol/usb-dci.h>
 #include <ddk/protocol/usb-hci.h>
+#include <ddk/protocol/usb-mode-switch.h>
 #include <ddk/protocol/usb.h>
 
 // Zircon USB includes
@@ -159,8 +162,11 @@ typedef struct dwc_usb {
     usb_request_pool_t free_usb_reqs;
 
     // device stuff
+    io_buffer_t ep0_buffer;
+    usb_dci_interface_t dci_intf;
     dwc_ep0_state_t ep0_state;
     usb_setup_t cur_setup;
+    bool configured;
 } dwc_usb_t;
 
 typedef struct dwc_usb_endpoint {
@@ -185,11 +191,14 @@ typedef struct dwc_usb_scheduler_thread_ctx {
 } dwc_usb_scheduler_thread_ctx_t;
 
 // dwc2-device.c
+extern usb_dci_protocol_ops_t dwc_dci_protocol;
+
 void dwc_handle_reset_irq(dwc_usb_t* dwc);
 void dwc_handle_enumdone_irq(dwc_usb_t* dwc);
 void dwc_handle_rxstsqlvl_irq(dwc_usb_t* dwc);
 void dwc_handle_inepintr_irq(dwc_usb_t* dwc);
 void dwc_handle_outepintr_irq(dwc_usb_t* dwc);
+void dwc_handle_nptxfempty_irq(dwc_usb_t* dwc);
 
 // dwc2-host.c
 extern usb_hci_protocol_ops_t dwc_hci_protocol;

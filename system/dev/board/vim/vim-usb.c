@@ -4,6 +4,7 @@
 
 #include <ddk/debug.h>
 #include <ddk/protocol/platform-defs.h>
+#include <ddk/protocol/usb-mode-switch.h>
 #include <hw/reg.h>
 
 #include <soc/aml-common/aml-usb-phy.h>
@@ -85,10 +86,39 @@ static const pbus_dev_t dwc2_dev = {
     .bti_count = countof(dwc2_btis),
 };
 
+static zx_status_t vim_get_initial_mode(void* ctx, usb_mode_t* out_mode) {
+    *out_mode = USB_MODE_DEVICE;
+    return ZX_OK;
+}
+
+static zx_status_t vim_set_mode(void* ctx, usb_mode_t mode) {
+/*
+    vim_bus_t* bus = ctx;
+
+    // add or remove XHCI device
+    pbus_device_enable(&bus->pbus, PDEV_VID_GENERIC, PDEV_PID_GENERIC, PDEV_DID_USB_XHCI,
+                       mode == USB_MODE_HOST);
+*/
+    return ZX_OK;
+}
+
+usb_mode_switch_protocol_ops_t usb_mode_switch_ops = {
+    .get_initial_mode = vim_get_initial_mode,
+    .set_mode = vim_set_mode,
+};
+
 zx_status_t vim_usb_init(vim_bus_t* bus) {
     zx_status_t status;
     volatile void* addr;
     uint32_t temp;
+
+    usb_mode_switch_protocol_t usb_mode_switch;
+    usb_mode_switch.ops = &usb_mode_switch_ops;
+    usb_mode_switch.ctx = &bus;
+    status = pbus_set_protocol(&bus->pbus, ZX_PROTOCOL_USB_MODE_SWITCH, &usb_mode_switch);
+    if (status != ZX_OK) {
+        return status;
+    }
 
     zx_handle_t bti;
     status = iommu_get_bti(&bus->iommu, 0, BTI_BOARD, &bti);
