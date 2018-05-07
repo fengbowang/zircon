@@ -1239,7 +1239,7 @@ struct dwc_regs {
     	diepint_t diepint;
     	uint32_t reserved2;
     	/* Device IN Endpoint Transfer Size */
-    	uint32_t dieptsiz;
+    	deptsiz_t dieptsiz;
     	/* Device IN Endpoint DMA Address Register */
     	uint32_t diepdma;
     	/* Device IN Endpoint Transmit FIFO Status Register */
@@ -1258,7 +1258,7 @@ struct dwc_regs {
     	doepint_t doepint;
     	uint32_t reserved2;
     	/* Device OUT Endpoint Transfer Size Register */
-    	uint32_t doeptsiz;
+    	deptsiz_t doeptsiz;
     	/* Device OUT Endpoint DMA Address Register */
     	uint32_t doepdma;
     	uint32_t reserved3;

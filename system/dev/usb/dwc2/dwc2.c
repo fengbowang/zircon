@@ -58,8 +58,8 @@ static zx_status_t usb_dwc_setupcontroller(void) {
     for (int i = 0; i < MAX_EPS_CHANNELS; i++) {
         regs->depin[i].diepctl.val = 0;
         regs->depout[i].doepctl.val = 0;
-        regs->depin[i].dieptsiz = 0;
-        regs->depout[i].doeptsiz = 0;
+        regs->depin[i].dieptsiz.val = 0;
+        regs->depout[i].doeptsiz.val = 0;
     }
 
     // reset phy clock
